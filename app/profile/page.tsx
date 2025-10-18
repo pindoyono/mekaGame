@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
@@ -16,8 +17,14 @@ export default function ProfilePage() {
   const { user, isAuthenticated, logout } = useAuth()
 
   // Redirect if not logged in
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      router.push('/login')
+    }
+  }, [isAuthenticated, user, router])
+
+  // Show loading or return null while checking auth
   if (!isAuthenticated || !user) {
-    router.push('/login')
     return null
   }
 

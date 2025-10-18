@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 interface ButtonProps {
     children: ReactNode
     onClick?: () => void
+    type?: 'button' | 'submit' | 'reset'
     variant?: 'primary' | 'secondary' | 'success' | 'danger'
     size?: 'sm' | 'md' | 'lg'
     className?: string
@@ -15,6 +16,7 @@ interface ButtonProps {
 export default function Button({
     children,
     onClick,
+    type = 'button',
     variant = 'primary',
     size = 'md',
     className = '',
@@ -37,6 +39,7 @@ export default function Button({
 
     return (
         <motion.button
+            type={type}
             whileHover={{ scale: disabled ? 1 : 1.05 }}
             whileTap={{ scale: disabled ? 1 : 0.95 }}
             className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${disabled ? 'opacity-50 cursor-not-allowed' : ''

@@ -19,6 +19,7 @@
 ## 📦 Persyaratan Sistem
 
 ### **Minimum Requirements:**
+
 - **OS:** Ubuntu 20.04 LTS atau lebih baru (22.04 LTS recommended)
 - **RAM:** 1 GB (2 GB recommended)
 - **Storage:** 10 GB free space
@@ -26,6 +27,7 @@
 - **Network:** Public IP address
 
 ### **Software Requirements:**
+
 - Node.js 18.x atau lebih baru
 - npm 9.x atau lebih baru
 - Nginx 1.18 atau lebih baru
@@ -214,17 +216,17 @@ sudo nano /etc/nginx/sites-available/mekagame
 server {
     listen 80;
     listen [::]:80;
-    
+
     # Ganti dengan domain Anda
     server_name yourdomain.com www.yourdomain.com;
-    
+
     # Jika tidak punya domain, gunakan IP:
     # server_name your-vps-ip;
-    
+
     # Logs
     access_log /var/log/nginx/mekagame-access.log;
     error_log /var/log/nginx/mekagame-error.log;
-    
+
     # Proxy ke Next.js (running di port 3000)
     location / {
         proxy_pass http://localhost:3000;
@@ -233,32 +235,32 @@ server {
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
         proxy_cache_bypass $http_upgrade;
-        
+
         # Headers tambahan
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        
+
         # Timeout settings
         proxy_connect_timeout 60s;
         proxy_send_timeout 60s;
         proxy_read_timeout 60s;
     }
-    
+
     # Static files caching (Next.js _next/static)
     location /_next/static {
         proxy_pass http://localhost:3000;
         proxy_cache_valid 60m;
         add_header Cache-Control "public, max-age=3600, immutable";
     }
-    
+
     # Public files caching
     location /public {
         proxy_pass http://localhost:3000;
         proxy_cache_valid 60m;
         add_header Cache-Control "public, max-age=3600";
     }
-    
+
     # Gzip compression
     gzip on;
     gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
@@ -321,24 +323,26 @@ nano ecosystem.config.js
 
 ```javascript
 module.exports = {
-  apps: [{
-    name: 'mekagame',
-    script: 'npm',
-    args: 'start',
-    cwd: '/home/mekagame/mekaGame',
-    instances: 1,
-    autorestart: true,
-    watch: false,
-    max_memory_restart: '1G',
-    env: {
-      NODE_ENV: 'production',
-      PORT: 3000
+  apps: [
+    {
+      name: "mekagame",
+      script: "npm",
+      args: "start",
+      cwd: "/home/mekagame/mekaGame",
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: "1G",
+      env: {
+        NODE_ENV: "production",
+        PORT: 3000,
+      },
+      error_file: "./logs/pm2-error.log",
+      out_file: "./logs/pm2-out.log",
+      log_date_format: "YYYY-MM-DD HH:mm:ss Z",
+      merge_logs: true,
     },
-    error_file: './logs/pm2-error.log',
-    out_file: './logs/pm2-out.log',
-    log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-    merge_logs: true
-  }]
+  ],
 };
 ```
 
@@ -448,7 +452,7 @@ server {
     listen 80;
     listen [::]:80;
     server_name yourdomain.com www.yourdomain.com;
-    
+
     # Redirect HTTP to HTTPS
     return 301 https://$server_name$request_uri;
 }
@@ -457,13 +461,13 @@ server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
     server_name yourdomain.com www.yourdomain.com;
-    
+
     # SSL Certificate (added by Certbot)
     ssl_certificate /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
-    
+
     # Rest of your configuration...
     location / {
         proxy_pass http://localhost:3000;
@@ -673,6 +677,7 @@ pm2 restart mekagame
 **Penyebab:** Next.js tidak berjalan di port 3000
 
 **Solusi:**
+
 ```bash
 # Check PM2 status
 pm2 status
@@ -803,12 +808,14 @@ pm2 restart mekagame
 ## ✅ Checklist Deploy
 
 ### **Pre-Deployment:**
+
 - [ ] VPS ready dengan Ubuntu 20.04+
 - [ ] Domain pointing ke VPS IP (jika pakai domain)
 - [ ] SSH access working
 - [ ] Minimum 1GB RAM, 10GB storage
 
 ### **Installation:**
+
 - [ ] System updated (`apt update && apt upgrade`)
 - [ ] Node.js 18.x installed
 - [ ] Nginx installed dan running
@@ -816,36 +823,42 @@ pm2 restart mekagame
 - [ ] Git installed
 
 ### **Application Setup:**
+
 - [ ] Repository cloned
 - [ ] Dependencies installed (`npm install`)
 - [ ] Production build created (`npm run build`)
 - [ ] Application tested locally (port 3000)
 
 ### **Nginx Configuration:**
+
 - [ ] Nginx config file created
 - [ ] Config syntax tested (`nginx -t`)
 - [ ] Nginx reloaded
 - [ ] Site accessible via HTTP
 
 ### **PM2 Setup:**
+
 - [ ] PM2 ecosystem file created
 - [ ] Application started with PM2
 - [ ] PM2 startup configured
 - [ ] PM2 process saved
 
 ### **SSL (Optional tapi Recommended):**
+
 - [ ] Certbot installed
 - [ ] SSL certificate obtained
 - [ ] HTTPS working
 - [ ] Auto-renewal tested
 
 ### **Security:**
+
 - [ ] UFW firewall configured
 - [ ] Fail2Ban installed
 - [ ] Security headers added
 - [ ] SSH key-based auth (recommended)
 
 ### **Post-Deployment:**
+
 - [ ] Application accessible dari internet
 - [ ] Logs berjalan normal
 - [ ] PM2 auto-restart working
@@ -857,6 +870,7 @@ pm2 restart mekagame
 ## 📚 Referensi & Resource
 
 ### **Official Documentation:**
+
 - Next.js Deployment: https://nextjs.org/docs/deployment
 - Nginx Documentation: https://nginx.org/en/docs/
 - PM2 Documentation: https://pm2.keymetrics.io/docs/
@@ -892,11 +906,13 @@ sudo systemctl reload nginx
 
 Aplikasi MekaGame Anda sekarang sudah live di VPS Ubuntu dengan Nginx!
 
-**Akses:** 
+**Akses:**
+
 - HTTP: http://yourdomain.com (atau http://your-vps-ip)
 - HTTPS: https://yourdomain.com (jika sudah setup SSL)
 
 **Support:**
+
 - GitHub Issues: https://github.com/pindoyono/mekaGame/issues
 - Dokumentasi lengkap: Lihat folder root project
 
