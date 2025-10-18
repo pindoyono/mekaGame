@@ -1,58 +1,73 @@
-'use client'
+"use client";
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { motion } from 'framer-motion'
-import { 
-  ArrowLeft, User, Mail, Calendar, Trophy, Star, 
-  Target, TrendingUp, CheckCircle, Lock, LogOut 
-} from 'lucide-react'
-import Button from '@/components/Button'
-import Card from '@/components/Card'
-import { useAuth } from '@/contexts/AuthContext'
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import {
+  ArrowLeft,
+  User,
+  Mail,
+  Calendar,
+  Trophy,
+  Star,
+  Target,
+  TrendingUp,
+  CheckCircle,
+  Lock,
+  LogOut,
+} from "lucide-react";
+import Button from "@/components/Button";
+import Card from "@/components/Card";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function ProfilePage() {
-  const router = useRouter()
-  const { user, isAuthenticated, logout } = useAuth()
+  const router = useRouter();
+  const { user, isAuthenticated, logout } = useAuth();
 
   // Redirect if not logged in
   useEffect(() => {
     if (!isAuthenticated || !user) {
-      router.push('/login')
+      router.push("/login");
     }
-  }, [isAuthenticated, user, router])
+  }, [isAuthenticated, user, router]);
 
   // Show loading or return null while checking auth
   if (!isAuthenticated || !user) {
-    return null
+    return null;
   }
 
   const handleLogout = () => {
-    if (confirm('Yakin ingin logout?')) {
-      logout()
-      router.push('/')
+    if (confirm("Yakin ingin logout?")) {
+      logout();
+      router.push("/");
     }
-  }
+  };
 
   // Calculate statistics
-  const totalLevels = 10
-  const completionRate = Math.round((user.levelsCompleted / totalLevels) * 100)
-  const averageScore = user.progress.length > 0
-    ? Math.round(user.progress.reduce((sum, p) => sum + p.bestScore, 0) / user.progress.length)
-    : 0
+  const totalLevels = 10;
+  const completionRate = Math.round((user.levelsCompleted / totalLevels) * 100);
+  const averageScore =
+    user.progress.length > 0
+      ? Math.round(
+          user.progress.reduce((sum, p) => sum + p.bestScore, 0) /
+            user.progress.length
+        )
+      : 0;
 
   // Sort progress by level
-  const sortedProgress = [...user.progress].sort((a, b) => a.levelId - b.levelId)
+  const sortedProgress = [...user.progress].sort(
+    (a, b) => a.levelId - b.levelId
+  );
 
   // Format date
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    })
-  }
+    return new Date(dateString).toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 py-8 px-4">
@@ -65,7 +80,7 @@ export default function ProfilePage() {
               Kembali
             </Button>
           </Link>
-          <Button 
+          <Button
             onClick={handleLogout}
             className="bg-red-500 hover:bg-red-600"
           >
@@ -106,7 +121,9 @@ export default function ProfilePage() {
               <div className="text-center">
                 <Trophy className="w-12 h-12 text-white mx-auto mb-2" />
                 <p className="text-white text-sm font-medium">Total Skor</p>
-                <p className="text-white text-3xl font-bold">{user.totalScore}</p>
+                <p className="text-white text-3xl font-bold">
+                  {user.totalScore}
+                </p>
               </div>
             </Card>
           </motion.div>
@@ -150,7 +167,9 @@ export default function ProfilePage() {
               <div className="text-center">
                 <Target className="w-12 h-12 text-white mx-auto mb-2" />
                 <p className="text-white text-sm font-medium">Progress</p>
-                <p className="text-white text-3xl font-bold">{completionRate}%</p>
+                <p className="text-white text-3xl font-bold">
+                  {completionRate}%
+                </p>
               </div>
             </Card>
           </motion.div>
@@ -202,11 +221,11 @@ export default function ProfilePage() {
               <div className="text-center py-12">
                 <Lock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <p className="text-gray-500 text-lg">Belum ada progress</p>
-                <p className="text-gray-400">Mulai main untuk melihat progress!</p>
+                <p className="text-gray-400">
+                  Mulai main untuk melihat progress!
+                </p>
                 <Link href="/">
-                  <Button className="mt-4">
-                    Mulai Bermain
-                  </Button>
+                  <Button className="mt-4">Mulai Bermain</Button>
                 </Link>
               </div>
             ) : (
@@ -220,17 +239,24 @@ export default function ProfilePage() {
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                          progress.completed 
-                            ? 'bg-gradient-to-r from-green-400 to-teal-500' 
-                            : 'bg-gradient-to-r from-gray-400 to-gray-500'
-                        }`}>
-                          <span className="text-white font-bold">{progress.levelId}</span>
+                        <div
+                          className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                            progress.completed
+                              ? "bg-gradient-to-r from-green-400 to-teal-500"
+                              : "bg-gradient-to-r from-gray-400 to-gray-500"
+                          }`}
+                        >
+                          <span className="text-white font-bold">
+                            {progress.levelId}
+                          </span>
                         </div>
                         <div>
-                          <p className="font-bold text-gray-900">Level {progress.levelId}</p>
+                          <p className="font-bold text-gray-900">
+                            Level {progress.levelId}
+                          </p>
                           <p className="text-sm text-gray-600">
-                            {progress.attempts} percobaan • Best: {progress.bestScore}%
+                            {progress.attempts} percobaan • Best:{" "}
+                            {progress.bestScore}%
                           </p>
                         </div>
                       </div>
@@ -252,7 +278,7 @@ export default function ProfilePage() {
                         )}
                       </div>
                     </div>
-                    
+
                     {/* Progress Bar */}
                     <div className="mt-3">
                       <div className="w-full bg-gray-200 rounded-full h-2">
@@ -293,11 +319,13 @@ export default function ProfilePage() {
               <div className="text-center text-white">
                 <Trophy className="w-12 h-12 mx-auto mb-2" />
                 <p className="font-bold text-lg">Lihat Leaderboard</p>
-                <p className="text-sm opacity-90">Bandingkan skormu dengan yang lain</p>
+                <p className="text-sm opacity-90">
+                  Bandingkan skormu dengan yang lain
+                </p>
               </div>
             </Card>
           </Link>
-          
+
           <Link href="/">
             <Card gradient="from-blue-400 to-purple-500" hover={true}>
               <div className="text-center text-white">
@@ -310,5 +338,5 @@ export default function ProfilePage() {
         </motion.div>
       </div>
     </main>
-  )
+  );
 }

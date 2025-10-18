@@ -199,6 +199,14 @@ export default function Home() {
               <span className="text-white font-bold text-xl">MekaGame</span>
             </div>
             <div className="flex items-center space-x-3">
+              {/* Panduan Button - Always visible */}
+              <Link href="/panduan">
+                <Button variant="secondary" className="hidden sm:flex">
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  Panduan
+                </Button>
+              </Link>
+              
               {isAuthenticated && user ? (
                 <>
                   <Link href="/leaderboard">
