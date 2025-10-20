@@ -45,8 +45,7 @@
     },
     "files": [
       "electron/**/*",
-      ".next/**/*",
-      "public/**/*",
+      "out/**/*",
       "node_modules/**/*",
       "package.json"
     ],
