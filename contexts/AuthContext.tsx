@@ -134,7 +134,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       progress: [],
     }
 
-    // Save to localStorage
+    // If running inside Electron, use IPC to register user in SQLite
+    // @ts-ignore
+    if (typeof window !== 'undefined' && (window as any).electronAPI) {
+      try {
+        // electron main will return { success, userId }
+        // We still create a client-side user object for the session
+        const resp = await (window as any).electronAPI.registerUser({ username, password, name: displayName })
+        if (resp && resp.success) {
+          const createdUser: User = {
+            id: String(resp.userId),
+            username,
+            email,
+            displayName,
+            createdAt: new Date().toISOString(),
+            totalScore: 0,
+            levelsCompleted: 0,
+            progress: [],
+          }
+
+          setUser(createdUser)
+          setIsAuthenticated(true)
+          localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(createdUser))
+          return true
+        }
+
+        alert(resp.error || 'Gagal mendaftar (Electron)')
+        return false
+      } catch (err) {
+        console.error('Electron register error', err)
+        alert('Terjadi kesalahan saat mendaftar')
+        return false
+      }
+    }
+
+    // Save to localStorage (web fallback)
     const updatedUsers = [...allUsers, newUser]
     saveAllUsers(updatedUsers)
 
@@ -152,7 +186,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       alert('Username dan password harus diisi!')
       return false
     }
+    // If in Electron, call IPC login which checks DB
+    // @ts-ignore
+    if (typeof window !== 'undefined' && (window as any).electronAPI) {
+      try {
+        const resp = await (window as any).electronAPI.loginUser({ username, password })
+        if (resp && resp.success && resp.user) {
+          const userFromDb: User = {
+            id: String(resp.user.id),
+            username: resp.user.username,
+            email: resp.user.email || '',
+            displayName: resp.user.name || resp.user.username,
+            createdAt: new Date().toISOString(),
+            totalScore: 0,
+            levelsCompleted: 0,
+            progress: [],
+          }
+          setUser(userFromDb)
+          setIsAuthenticated(true)
+          localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(userFromDb))
+          return true
+        }
+        alert(resp.error || 'Login gagal (Electron)')
+        return false
+      } catch (err) {
+        console.error('Electron login error', err)
+        alert('Terjadi kesalahan saat login')
+        return false
+      }
+    }
 
+    // Web fallback: localStorage-based login
     const allUsers = getAllUsers()
     const foundUser = allUsers.find(
       (u) => u.username.toLowerCase() === username.toLowerCase()
@@ -163,8 +227,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return false
     }
 
-    // In real app, we would verify password hash
-    // For demo, we just check if password length matches expected
     if (password.length < 6) {
       alert('Password salah!')
       return false
@@ -188,6 +250,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateProgress = (levelId: number, score: number, completed: boolean) => {
     if (!user) return
 
+    // If running inside Electron, delegate save to main process
+    // @ts-ignore
+    if (typeof window !== 'undefined' && (window as any).electronAPI) {
+      try {
+        (window as any).electronAPI.updateProgress({ userId: user.id, level, score, completed })
+      } catch (err) {
+        console.error('Electron updateProgress error', err)
+      }
+      // Keep local session updated for UI
+      const existingProgressIndex = user.progress.findIndex((p) => p.levelId === levelId)
+      let updatedProgress = [...user.progress]
+
+      if (existingProgressIndex !== -1) {
+        const existing = updatedProgress[existingProgressIndex]
+        updatedProgress[existingProgressIndex] = {
+          ...existing,
+          score,
+          completed: completed || existing.completed,
+          attempts: existing.attempts + 1,
+          bestScore: Math.max(existing.bestScore, score),
+          completedAt: completed ? new Date().toISOString() : existing.completedAt,
+        }
+      } else {
+        updatedProgress.push({
+          levelId,
+          completed,
+          score,
+          attempts: 1,
+          bestScore: score,
+          completedAt: completed ? new Date().toISOString() : undefined,
+        })
+      }
+
+      const totalScore = updatedProgress.reduce((sum, p) => sum + p.bestScore, 0)
+      const levelsCompleted = updatedProgress.filter((p) => p.completed).length
+
+      const updatedUser: User = {
+        ...user,
+        progress: updatedProgress,
+        totalScore,
+        levelsCompleted,
+      }
+
+      setUser(updatedUser)
+      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(updatedUser))
+      return
+    }
+
+    // Web fallback: localStorage update logic
     const existingProgressIndex = user.progress.findIndex((p) => p.levelId === levelId)
     let updatedProgress = [...user.progress]
 
