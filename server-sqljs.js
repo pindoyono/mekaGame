@@ -25,9 +25,15 @@ const outDir = path.join(baseDir, 'out');
 const dataDir = path.join(baseDir, 'data');
 const dbPath = path.join(dataDir, 'mekagame.db');
 
+// Path to sql.js WASM file
+const wasmPath = process.pkg 
+  ? path.join(baseDir, 'sql-wasm.wasm')
+  : path.join(__dirname, 'node_modules', 'sql.js', 'dist', 'sql-wasm.wasm');
+
 console.log('🔍 Base directory:', baseDir);
 console.log('📁 Out directory:', outDir);
 console.log('💾 Data directory:', dataDir);
+console.log('🔧 WASM path:', wasmPath);
 
 // Middleware
 app.use(express.json());
@@ -57,8 +63,19 @@ async function initDatabase() {
   try {
     console.log('💾 Initializing sql.js database...');
     
-    // Initialize sql.js
-    SQL = await initSqlJs();
+    // Check if WASM file exists
+    if (!fs.existsSync(wasmPath)) {
+      throw new Error(`WASM file not found at: ${wasmPath}`);
+    }
+    console.log('✅ WASM file found');
+    
+    // Initialize sql.js with WASM path
+    SQL = await initSqlJs({
+      locateFile: file => {
+        console.log('📂 Loading WASM file:', file);
+        return wasmPath;
+      }
+    });
     
     // Load existing database or create new one
     if (fs.existsSync(dbPath)) {
@@ -295,22 +312,50 @@ initDatabase().then(() => {
     }
   });
 }).catch(error => {
-  console.error('\n❌ FATAL ERROR: Server failed to start!\n');
+  console.error('\n' + '='.repeat(60));
+  console.error('❌ FATAL ERROR: Server failed to start!');
+  console.error('='.repeat(60) + '\n');
   console.error('Error:', error.message);
-  console.error('\nPlease check:');
+  console.error('Stack:', error.stack);
+  console.error('\n📋 Please check:');
   console.error('  1. Folder "out" exists next to MekaGame.exe');
-  console.error('  2. Folder "data" is writable');
-  console.error('  3. Port 3000 is not already in use\n');
-  console.error('Press any key to exit...');
-  process.stdin.once('data', () => process.exit(1));
+  console.error('  2. File "sql-wasm.wasm" exists next to MekaGame.exe');
+  console.error('  3. Folder "data" is writable');
+  console.error('  4. Port 3000 is not already in use');
+  console.error('\n🔍 Paths:');
+  console.error('  Base:', baseDir);
+  console.error('  Out:', outDir);
+  console.error('  Data:', dataDir);
+  console.error('  WASM:', wasmPath);
+  console.error('\n⏸️  Press Ctrl+C to exit...\n');
+  
+  // Keep process alive so user can read error
+  setInterval(() => {}, 1000);
 });
 
 // Graceful shutdown
 process.on('SIGINT', () => {
   console.log('\n\n👋 Server dihentikan. Terima kasih!');
-  saveDatabase();
+  if (db) saveDatabase();
   process.exit(0);
 });
 
+// Catch unhandled errors
+process.on('uncaughtException', (error) => {
+  console.error('\n❌ UNCAUGHT EXCEPTION:', error);
+  console.error('Stack:', error.stack);
+  console.error('\n⏸️  Press Ctrl+C to exit...\n');
+  setInterval(() => {}, 1000);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('\n❌ UNHANDLED REJECTION:', reason);
+  console.error('Promise:', promise);
+  console.error('\n⏸️  Press Ctrl+C to exit...\n');
+  setInterval(() => {}, 1000);
+});
+
 // Periodic save (every 30 seconds)
-setInterval(saveDatabase, 30000);
+setInterval(() => {
+  if (db) saveDatabase();
+}, 30000);

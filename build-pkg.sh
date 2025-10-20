@@ -43,6 +43,16 @@ cp -r out dist-pkg/
 mkdir -p dist-pkg/data
 touch dist-pkg/data/.gitkeep
 
+# Copy sql.js WASM file
+echo "📦 Copying sql.js WASM file..."
+if [ -f "node_modules/sql.js/dist/sql-wasm.wasm" ]; then
+    cp node_modules/sql.js/dist/sql-wasm.wasm dist-pkg/
+    echo "   ✅ WASM file copied"
+else
+    echo "   ❌ ERROR: WASM file not found!"
+    exit 1
+fi
+
 echo "✅ Using sql.js (pure JavaScript SQLite) - no native bindings needed!"
 
 # Create README
@@ -58,13 +68,16 @@ cat > dist-pkg/README.txt << 'EOF'
 Pastikan struktur folder seperti ini:
 
 MekaGame-PKG/
-├── MekaGame.exe     ← File utama (double-click ini!)
-├── out/             ← Folder aplikasi web (JANGAN dihapus!)
-├── data/            ← Database akan dibuat otomatis di sini
-└── README.txt       ← File ini
+├── MekaGame.exe       ← File utama (double-click ini!)
+├── sql-wasm.wasm      ← File SQLite WebAssembly (WAJIB!)
+├── out/               ← Folder aplikasi web (JANGAN dihapus!)
+├── data/              ← Database akan dibuat otomatis di sini
+└── README.txt         ← File ini
 
-JANGAN pisahkan file MekaGame.exe dari folder "out"!
-Aplikasi membutuhkan folder "out" untuk berjalan.
+⚠️  PENTING:
+- JANGAN pisahkan MekaGame.exe dari folder "out"!
+- JANGAN pisahkan MekaGame.exe dari file "sql-wasm.wasm"!
+- Semua file harus di folder yang sama!
 
 
 📦 CARA MENJALANKAN:
@@ -116,9 +129,15 @@ SANGAT MUDAH - HANYA 2 LANGKAH:
 
 ❌ "Out directory not found" atau langsung keluar
    → Pastikan folder "out" ada di folder yang sama dengan MekaGame.exe
-   → Struktur harus: MekaGame.exe dan folder out/ di level yang sama
+   → Pastikan file "sql-wasm.wasm" ada di folder yang sama
+   → Struktur harus: MekaGame.exe, sql-wasm.wasm, dan folder out/ di level yang sama
    → Jangan jalankan dari dalam folder out/
    → Extract ulang ZIP jika perlu
+
+❌ "WASM file not found"
+   → File sql-wasm.wasm hilang atau terpisah
+   → Extract ulang ZIP dengan lengkap
+   → Jangan copy hanya MekaGame.exe saja
 
 ❌ Server langsung tertutup
    → Buka Command Prompt (cmd)
