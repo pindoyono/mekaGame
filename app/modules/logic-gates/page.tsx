@@ -188,6 +188,19 @@ export default function LogicGatesModule() {
     }
   };
 
+  const nextChallenge = () => {
+    if (currentChallenge < challenges.length - 1) {
+      setCurrentChallenge(currentChallenge + 1);
+      setInputStates([false, false, false]);
+      setShowChallengeModal(false);
+    }
+  };
+
+  const calculateScore = () => {
+    const completed = completedChallenges.filter((c) => c).length;
+    return (completed / challenges.length) * 100;
+  };
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 py-8 px-4">
       <div className="container mx-auto max-w-7xl">
@@ -249,7 +262,7 @@ export default function LogicGatesModule() {
                     key={challenge.id}
                     onClick={() => {
                       setCurrentChallenge(idx);
-                      clearCircuit();
+                      setInputStates([false, false, false]);
                     }}
                     disabled={idx > 0 && !completedChallenges[idx - 1]}
                     className={`w-full p-3 rounded-lg text-left transition-all ${
@@ -304,45 +317,6 @@ export default function LogicGatesModule() {
                     <p className="text-xs text-white/80 mt-1">{challenge.task}</p>
                   </button>
                 ))}
-              </div>
-            </Card>
-
-            {/* Controls */}
-            <Card gradient="from-green-600 to-teal-600">
-              <h3 className="text-xl font-bold text-white mb-4">⚡ Controls</h3>
-              <div className="space-y-3">
-                <Button
-                  onClick={() => setIsSimulating(!isSimulating)}
-                  variant={isSimulating ? "secondary" : "primary"}
-                  className="w-full"
-                >
-                  {isSimulating ? (
-                    <>
-                      <Square className="w-5 h-5 mr-2" />
-                      Stop
-                    </>
-                  ) : (
-                    <>
-                      <Play className="w-5 h-5 mr-2" />
-                      Simulate
-                    </>
-                  )}
-                </Button>
-                <Button
-                  onClick={clearCircuit}
-                  variant="secondary"
-                  className="w-full"
-                >
-                  <Trash2 className="w-5 h-5 mr-2" />
-                  Clear
-                </Button>
-                <Button
-                  onClick={() => setShowTruthTable(true)}
-                  variant="secondary"
-                  className="w-full"
-                >
-                  📊 Truth Table
-                </Button>
               </div>
             </Card>
 
@@ -407,87 +381,90 @@ export default function LogicGatesModule() {
             </Card>
           </div>
 
-          {/* Right Panel - Inputs */}
+          {/* Right Panel - Legend & Help */}
           <div className="lg:col-span-1 space-y-6">
-            {/* Input Controls */}
-            <Card gradient="from-blue-600 to-indigo-600">
-              <h3 className="text-xl font-bold text-white mb-4">📥 Inputs</h3>
-              <div className="space-y-3">
-                {inputStates
-                  .slice(0, challenges[currentChallenge].inputs)
-                  .map((state, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => toggleInput(idx)}
-                      className={`w-full p-3 rounded-lg font-mono transition-all ${
-                        state
-                          ? "bg-green-500 text-white"
-                          : "bg-gray-700 text-gray-300"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span>Input {String.fromCharCode(65 + idx)}</span>
-                        <Zap
-                          className={`w-5 h-5 ${
-                            state ? "text-yellow-300 animate-pulse" : ""
-                          }`}
-                        />
-                      </div>
-                    </button>
-                  ))}
-              </div>
-              <div className="mt-4 p-3 bg-white/10 rounded-lg text-white text-xs">
-                <p className="font-semibold mb-1">💡 Tip:</p>
-                <p>Klik tombol input untuk toggle ON/OFF</p>
-                <p>Hijau = ON (1), Abu = OFF (0)</p>
-              </div>
-            </Card>
-
             {/* Gate Legend */}
             <Card gradient="from-purple-600 to-indigo-600">
-              <h3 className="text-xl font-bold text-white mb-4">📖 Legend</h3>
-              <div className="text-white space-y-2 text-xs">
-                <div className="flex justify-between">
-                  <span>AND:</span>
-                  <span>A · B</span>
+              <h3 className="text-xl font-bold text-white mb-4">� Gate Legend</h3>
+              <div className="text-white space-y-2 text-sm">
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold">AND:</span>
+                  <span className="font-mono">A · B</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>OR:</span>
-                  <span>A + B</span>
+                <p className="text-xs text-white/70 mb-3">Output ON hanya jika SEMUA input ON</p>
+                
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold">OR:</span>
+                  <span className="font-mono">A + B</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>NOT:</span>
-                  <span>Ā</span>
+                <p className="text-xs text-white/70 mb-3">Output ON jika SALAH SATU input ON</p>
+                
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold">NOT:</span>
+                  <span className="font-mono">Ā</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>NAND:</span>
-                  <span>!(A · B)</span>
+                <p className="text-xs text-white/70 mb-3">Output KEBALIKAN dari input</p>
+                
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold">NAND:</span>
+                  <span className="font-mono">!(A · B)</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>XOR:</span>
-                  <span>A ⊕ B</span>
+                <p className="text-xs text-white/70 mb-3">Output OFF hanya jika SEMUA input ON</p>
+                
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold">XOR:</span>
+                  <span className="font-mono">A ⊕ B</span>
+                </div>
+                <p className="text-xs text-white/70">Output ON jika input BERBEDA</p>
+              </div>
+            </Card>
+
+            {/* Quick Tips */}
+            <Card gradient="from-blue-600 to-indigo-600">
+              <h3 className="text-xl font-bold text-white mb-4">� Tips Cepat</h3>
+              <div className="text-white space-y-3 text-sm">
+                <div className="flex items-start gap-2">
+                  <span className="text-green-400">1.</span>
+                  <p>Toggle input dengan klik tombol A, B, atau C</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-green-400">2.</span>
+                  <p>Hijau = ON (1), Abu = OFF (0)</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-green-400">3.</span>
+                  <p>Klik "Periksa" untuk validasi jawaban</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-green-400">4.</span>
+                  <p>Gunakan "Truth Table" untuk melihat semua kombinasi</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-green-400">5.</span>
+                  <p>Challenge harus diselesaikan berurutan</p>
                 </div>
               </div>
             </Card>
 
-            {/* Output Status */}
+            {/* Progress */}
             <Card gradient="from-green-600 to-emerald-600">
-              <h3 className="text-xl font-bold text-white mb-4">📤 Outputs</h3>
+              <h3 className="text-xl font-bold text-white mb-4">� Progress</h3>
               <div className="space-y-3">
-                {gates
-                  .filter((g) => g.type === "OUTPUT")
-                  .map((gate, idx) => (
-                    <div
-                      key={gate.id}
-                      className={`p-3 rounded-lg font-mono ${
-                        gate.output
-                          ? "bg-red-500 text-white"
-                          : "bg-gray-700 text-gray-400"
-                      }`}
-                    >
-                      Output {idx + 1}: {gate.output ? "1" : "0"}
-                    </div>
-                  ))}
+                <div className="text-white">
+                  <p className="text-sm mb-2">Challenge Selesai:</p>
+                  <p className="text-3xl font-bold">
+                    {completedChallenges.filter(c => c).length}/{challenges.length}
+                  </p>
+                </div>
+                <div className="w-full bg-white/20 rounded-full h-3">
+                  <div 
+                    className="bg-green-400 h-3 rounded-full transition-all duration-500"
+                    style={{ width: `${(completedChallenges.filter(c => c).length / challenges.length) * 100}%` }}
+                  />
+                </div>
+                <div className="text-white text-sm">
+                  <p>Best Score: <span className="font-bold text-yellow-300">{bestScore}%</span></p>
+                </div>
               </div>
             </Card>
           </div>
