@@ -50,6 +50,21 @@ cat > dist-pkg/README.txt << 'EOF'
            Game Edukasi Interaktif Mekatronika dan Elektronika
 ================================================================================
 
+⚠️  PENTING - STRUKTUR FOLDER:
+================================================================================
+
+Pastikan struktur folder seperti ini:
+
+MekaGame-PKG/
+├── MekaGame.exe     ← File utama (double-click ini!)
+├── out/             ← Folder aplikasi web (JANGAN dihapus!)
+├── data/            ← Database akan dibuat otomatis di sini
+└── README.txt       ← File ini
+
+JANGAN pisahkan file MekaGame.exe dari folder "out"!
+Aplikasi membutuhkan folder "out" untuk berjalan.
+
+
 📦 CARA MENJALANKAN:
 ================================================================================
 
@@ -96,6 +111,18 @@ SANGAT MUDAH - HANYA 2 LANGKAH:
    → Hapus file: data/mekagame.db
    → Jalankan ulang MekaGame.exe
    → Database baru akan dibuat
+
+❌ "Out directory not found" atau langsung keluar
+   → Pastikan folder "out" ada di folder yang sama dengan MekaGame.exe
+   → Struktur harus: MekaGame.exe dan folder out/ di level yang sama
+   → Jangan jalankan dari dalam folder out/
+   → Extract ulang ZIP jika perlu
+
+❌ Server langsung tertutup
+   → Buka Command Prompt (cmd)
+   → Drag MekaGame.exe ke window cmd
+   → Tekan Enter untuk lihat error message
+   → Screenshot error dan hubungi support
 
 
 📊 KEBUTUHAN SISTEM:
