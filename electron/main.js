@@ -1,7 +1,9 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
-const isDev = require('electron-is-dev');
 const Database = require('better-sqlite3');
+
+// Simple dev check without external dependency
+const isDev = !app.isPackaged;
 
 let mainWindow;
 let db;
