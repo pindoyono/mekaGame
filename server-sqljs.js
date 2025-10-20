@@ -10,7 +10,7 @@ const fs = require('fs');
 const initSqlJs = require('sql.js');
 
 const app = express();
-const PORT = 3000;
+const PORT = 1878;
 
 // Get the correct base directory
 const getBaseDir = () => {
@@ -286,18 +286,43 @@ app.use((req, res, next) => {
 // Start server
 console.log('\n🚀 Starting MekaGame Server...\n');
 
+// Get local IP address
+function getLocalIP() {
+  const os = require('os');
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      // Skip internal and non-IPv4 addresses
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return 'localhost';
+}
+
 initDatabase().then(() => {
-  app.listen(PORT, '127.0.0.1', () => {
+  app.listen(PORT, '0.0.0.0', () => {
+    const localIP = getLocalIP();
+    
     console.log('');
     console.log('=' .repeat(60));
     console.log('  🎮 MekaGame Server (sql.js)');
     console.log('=' .repeat(60));
     console.log('');
-    console.log(`  ✅ Server running at: http://localhost:${PORT}`);
+    console.log(`  ✅ Server running at:`);
+    console.log(`     • Local:   http://localhost:${PORT}`);
+    console.log(`     • Network: http://${localIP}:${PORT}`);
+    console.log('');
     console.log(`  📁 Database location: ${dbPath}`);
     console.log(`  📂 Static files from: ${outDir}`);
     console.log('');
-    console.log('  📌 Buka browser dan akses: http://localhost:3000');
+    console.log(`  📌 Akses dari komputer ini:`);
+    console.log(`     http://localhost:${PORT}`);
+    console.log('');
+    console.log(`  🌐 Akses dari komputer lain (LAN):`);
+    console.log(`     http://${localIP}:${PORT}`);
+    console.log('');
     console.log('  ⚠️  Jangan tutup window ini!');
     console.log('');
     console.log('=' .repeat(60));
@@ -321,7 +346,8 @@ initDatabase().then(() => {
   console.error('  1. Folder "out" exists next to MekaGame.exe');
   console.error('  2. File "sql-wasm.wasm" exists next to MekaGame.exe');
   console.error('  3. Folder "data" is writable');
-  console.error('  4. Port 3000 is not already in use');
+  console.error(`  4. Port ${PORT} is not already in use`);
+  console.error('  5. Firewall allows port ' + PORT + ' (for network access)');
   console.error('\n🔍 Paths:');
   console.error('  Base:', baseDir);
   console.error('  Out:', outDir);
