@@ -12,3 +12,7 @@ yarn-error.log*
 .vercel
 *.tsbuildinfo
 next-env.d.ts
+
+# Electron build output (binaries too large for git)
+dist/
+!dist/README-INSTALASI.txt

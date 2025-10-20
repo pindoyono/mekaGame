@@ -3,6 +3,7 @@
 ## 📥 Download
 
 Download file installer:
+
 - **MekaGame Setup.exe** (~150 MB)
 
 ## ⚙️ Cara Install
@@ -53,12 +54,14 @@ Download file installer:
 ### 🎯 12 Level Pembelajaran
 
 1. **Level 1-4**: Dasar Elektronika
+
    - Pengenalan Komponen
    - Rangkaian Seri-Paralel
    - Simbol Komponen
    - Gerbang Logika
 
 2. **Level 5-8**: Sensor & Actuator
+
    - Sensor (LDR, PIR, Ultrasonik)
    - Actuator (Motor, LED, Buzzer)
    - Rangkaian Elektronik
@@ -112,6 +115,7 @@ Untuk backup progress:
 ### Aplikasi tidak mau dibuka
 
 **Solusi:**
+
 1. Restart komputer
 2. Install ulang aplikasi
 3. Pastikan Windows 10/11 (64-bit)
@@ -119,6 +123,7 @@ Untuk backup progress:
 ### Lupa Password
 
 **Solusi:**
+
 1. Close aplikasi
 2. Buka folder: `%APPDATA%\MekaGame`
 3. Delete file `mekagame.db`
@@ -129,16 +134,19 @@ Untuk backup progress:
 ### Progress hilang
 
 **Penyebab:**
+
 - File database terhapus
 - Pindah user Windows
 - Reinstall Windows tanpa backup
 
 **Pencegahan:**
+
 - Backup file `mekagame.db` secara berkala
 
 ### Aplikasi lemot/lag
 
 **Solusi:**
+
 1. Close aplikasi lain yang berat
 2. Restart aplikasi
 3. Minimal RAM: 4 GB
@@ -219,7 +227,7 @@ Jika ada masalah:
 
 ## 📄 License
 
-Aplikasi ini dibuat untuk tujuan pendidikan. 
+Aplikasi ini dibuat untuk tujuan pendidikan.
 Silakan gunakan untuk pembelajaran.
 
 ---

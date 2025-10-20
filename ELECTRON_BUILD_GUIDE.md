@@ -3,7 +3,8 @@
 ## 📋 Prasyarat
 
 Pastikan sudah terinstall:
-- Node.js 18+ 
+
+- Node.js 18+
 - npm atau yarn
 - Git
 
@@ -16,6 +17,7 @@ npm install
 ```
 
 Dependencies yang diperlukan sudah terinstall:
+
 - `electron` - Framework desktop app
 - `electron-builder` - Untuk build installer
 - `better-sqlite3` - Database lokal
@@ -30,6 +32,7 @@ npm run electron:dev
 ```
 
 Perintah ini akan:
+
 1. Start Next.js dev server (port 3000)
 2. Wait sampai server ready
 3. Launch Electron window otomatis
@@ -45,11 +48,13 @@ npm run electron:build
 ```
 
 Proses ini akan:
+
 1. Build Next.js production (`npm run build`)
 2. Package dengan Electron
 3. Create installer `.exe` untuk Windows x64
 
 **Output:**
+
 ```
 dist/
 ├── MekaGame Setup 1.0.0.exe     ← Installer (distribusi ini)
@@ -60,9 +65,11 @@ dist/
 ### 4. Distribusi
 
 File yang didistribusikan:
+
 - **`MekaGame Setup 1.0.0.exe`** (~150-200 MB)
 
 Cara install untuk pengguna:
+
 1. Download file `.exe`
 2. Double-click untuk install
 3. Pilih lokasi instalasi (default: `C:\Program Files\MekaGame`)
@@ -74,6 +81,7 @@ Cara install untuk pengguna:
 ### Lokasi Database
 
 Database SQLite otomatis dibuat di:
+
 ```
 Windows: C:\Users\<Username>\AppData\Roaming\MekaGame\mekagame.db
 ```
@@ -81,15 +89,17 @@ Windows: C:\Users\<Username>\AppData\Roaming\MekaGame\mekagame.db
 ### Struktur Database
 
 **Tabel `users`:**
+
 ```sql
 id INTEGER PRIMARY KEY
 username TEXT UNIQUE
-password TEXT  
+password TEXT
 name TEXT
 created_at DATETIME
 ```
 
 **Tabel `progress`:**
+
 ```sql
 id INTEGER PRIMARY KEY
 user_id INTEGER (FK)
@@ -103,11 +113,13 @@ UNIQUE(user_id, level)
 ### Backup/Reset Database
 
 Untuk backup progress siswa:
+
 1. Buka folder: `%APPDATA%\MekaGame`
 2. Copy file `mekagame.db`
 3. Simpan di tempat aman
 
 Untuk reset (hapus semua data):
+
 1. Close aplikasi MekaGame
 2. Delete file `mekagame.db` di folder AppData
 3. Start aplikasi lagi (database baru akan dibuat)
@@ -122,9 +134,9 @@ Edit `package.json`:
 {
   "build": {
     "appId": "com.mekagame.app",
-    "productName": "MekaGame",  // ← Nama aplikasi
+    "productName": "MekaGame", // ← Nama aplikasi
     "win": {
-      "icon": "public/icon.png"  // ← Path icon (256x256 PNG)
+      "icon": "public/icon.png" // ← Path icon (256x256 PNG)
     }
   }
 }
@@ -136,7 +148,7 @@ Edit `package.json`:
 
 ```json
 {
-  "version": "1.0.0"  // ← Update versi di sini
+  "version": "1.0.0" // ← Update versi di sini
 }
 ```
 
@@ -145,6 +157,7 @@ Edit `package.json`:
 ### Error: Port 3000 already in use
 
 Solusi:
+
 ```bash
 # Windows
 npx kill-port 3000
@@ -157,6 +170,7 @@ taskkill /PID <PID> /F
 ### Error: better-sqlite3 binding
 
 Jika ada error native module:
+
 ```bash
 npm rebuild better-sqlite3 --update-binary
 ```
@@ -190,11 +204,13 @@ Opsi optimasi di `package.json`:
 ## 📦 Ukuran File
 
 Estimasi ukuran:
+
 - **Installer (.exe)**: ~150-180 MB
 - **Installed size**: ~250-300 MB
 - **Database (per user)**: ~1-5 MB
 
 Ukuran besar karena:
+
 - Chromium engine (Electron)
 - Node.js runtime
 - Next.js framework
@@ -241,13 +257,14 @@ npm run electron:build -- --linux  # Linux
 - Password disimpan plain text (untuk versi sekolah sederhana)
 - Untuk production, tambahkan enkripsi:
   ```javascript
-  const bcrypt = require('bcrypt');
+  const bcrypt = require("bcrypt");
   const hashedPassword = await bcrypt.hash(password, 10);
   ```
 
 ## 📝 Changelog
 
 ### Version 1.0.0
+
 - ✅ Initial release
 - ✅ Electron desktop app
 - ✅ SQLite local database
@@ -259,6 +276,7 @@ npm run electron:build -- --linux  # Linux
 ## 🆘 Support
 
 Untuk bantuan atau bug report:
+
 - GitHub: https://github.com/pindoyono/mekaGame
 - Issues: https://github.com/pindoyono/mekaGame/issues
 
