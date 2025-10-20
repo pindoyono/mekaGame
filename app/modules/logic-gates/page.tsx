@@ -72,14 +72,17 @@ export default function LogicGatesModule() {
   const bestScore = levelProgress?.score || 0;
 
   // Inputs for the current challenge (max 3 supported)
-  const [inputStates, setInputStates] = useState<boolean[]>([false, false, false]);
+  const [inputStates, setInputStates] = useState<boolean[]>([
+    false,
+    false,
+    false,
+  ]);
   // For gates that have multiple outputs (like Half Adder previously), we use expectedOutputs shape
   const challenges: Challenge[] = [
     {
       id: 1,
       name: "Challenge 1: Gerbang AND",
-      description:
-        "Buat rangkaian sederhana dengan gerbang AND",
+      description: "Buat rangkaian sederhana dengan gerbang AND",
       task: "Output ON hanya jika KEDUA input ON",
       inputs: 2,
       expectedOutputs: [
@@ -152,7 +155,7 @@ export default function LogicGatesModule() {
     const inVals = inputs.slice(0, challenge.inputs);
 
     // Convert inputs to numbers for indexing expectedOutputs
-    const idx = inVals.reduce((acc, val, i) => acc + (val ? (1 << i) : 0), 0);
+    const idx = inVals.reduce((acc, val, i) => acc + (val ? 1 << i : 0), 0);
     const expectedRow = challenge.expectedOutputs[idx];
     // expectedRow may include inputs + outputs in some older shapes; outputs are after inputs
     const outputs = expectedRow.slice(challenge.inputs);
@@ -168,7 +171,7 @@ export default function LogicGatesModule() {
       // Choose the expected outputs for current input combination
       const challenge = challenges[currentChallenge];
       const inVals = inputStates.slice(0, challenge.inputs);
-      const idx = inVals.reduce((acc, val, i) => acc + (val ? (1 << i) : 0), 0);
+      const idx = inVals.reduce((acc, val, i) => acc + (val ? 1 << i : 0), 0);
       const expected = challenge.expectedOutputs[idx].slice(challenge.inputs);
       // Compare
       return JSON.stringify(curOutputs) === JSON.stringify(expected);
@@ -247,7 +250,7 @@ export default function LogicGatesModule() {
           </div>
         </motion.div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Left Panel */}
           <div className="lg:col-span-1 space-y-6">
             {/* Challenge Selection */}
@@ -288,7 +291,9 @@ export default function LogicGatesModule() {
 
             {/* Info: Challenge selector */}
             <Card gradient="from-blue-600 to-cyan-600">
-              <h3 className="text-xl font-bold text-white mb-4">🎯 Pilih Challenge</h3>
+              <h3 className="text-xl font-bold text-white mb-4">
+                🎯 Pilih Challenge
+              </h3>
               <div className="space-y-3">
                 {challenges.map((challenge, idx) => (
                   <button
@@ -309,12 +314,16 @@ export default function LogicGatesModule() {
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold">{challenge.name}</span>
+                      <span className="text-sm font-semibold">
+                        {challenge.name}
+                      </span>
                       {completedChallenges[idx] && (
                         <CheckCircle className="w-4 h-4 text-green-400" />
                       )}
                     </div>
-                    <p className="text-xs text-white/80 mt-1">{challenge.task}</p>
+                    <p className="text-xs text-white/80 mt-1">
+                      {challenge.task}
+                    </p>
                   </button>
                 ))}
               </div>
@@ -343,11 +352,18 @@ export default function LogicGatesModule() {
           {/* Center - Canvas */}
           <div className="lg:col-span-2 space-y-6">
             <Card gradient="from-slate-700 to-slate-800">
-              <h3 className="text-xl font-bold text-white mb-4">🧩 Simulator Sederhana</h3>
-              <p className="text-white text-sm mb-4">Toggle input dan klik "Periksa" untuk melihat apakah challenge selesai.</p>
+              <h3 className="text-xl font-bold text-white mb-4">
+                🧩 Simulator Sederhana
+              </h3>
+              <p className="text-white text-sm mb-4">
+                Toggle input dan klik "Periksa" untuk melihat apakah challenge
+                selesai.
+              </p>
               <div className="space-y-3">
                 <div className="flex flex-wrap gap-2">
-                  {Array.from({ length: challenges[currentChallenge].inputs }).map((_, idx) => (
+                  {Array.from({
+                    length: challenges[currentChallenge].inputs,
+                  }).map((_, idx) => (
                     <button
                       key={idx}
                       onClick={() => {
@@ -355,24 +371,50 @@ export default function LogicGatesModule() {
                         next[idx] = !next[idx];
                         setInputStates(next);
                       }}
-                      className={`p-3 rounded-md font-mono ${inputStates[idx] ? 'bg-green-500 text-white' : 'bg-gray-700 text-gray-200'}`}>
-                      {String.fromCharCode(65 + idx)}: {inputStates[idx] ? '1' : '0'}
+                      className={`p-3 rounded-md font-mono ${
+                        inputStates[idx]
+                          ? "bg-green-500 text-white"
+                          : "bg-gray-700 text-gray-200"
+                      }`}
+                    >
+                      {String.fromCharCode(65 + idx)}:{" "}
+                      {inputStates[idx] ? "1" : "0"}
                     </button>
                   ))}
                 </div>
 
                 <div className="flex gap-2">
-                  <Button onClick={checkChallengeValidationSimple} variant="primary">Periksa</Button>
-                  <Button onClick={() => setInputStates([false, false, false])} variant="secondary">Reset</Button>
-                  <Button onClick={() => setShowTruthTable(true)} variant="secondary">Truth Table</Button>
+                  <Button
+                    onClick={checkChallengeValidationSimple}
+                    variant="primary"
+                  >
+                    Periksa
+                  </Button>
+                  <Button
+                    onClick={() => setInputStates([false, false, false])}
+                    variant="secondary"
+                  >
+                    Reset
+                  </Button>
+                  <Button
+                    onClick={() => setShowTruthTable(true)}
+                    variant="secondary"
+                  >
+                    Truth Table
+                  </Button>
                 </div>
 
                 <div className="p-3 bg-white/5 rounded text-sm text-white">
                   Output saat ini:
                   <div className="mt-2 font-mono text-lg">
                     {evaluateCurrent(inputStates).map((o, i) => (
-                      <span key={i} className={`inline-block mr-3 p-1 px-2 rounded ${o ? 'bg-green-600' : 'bg-gray-700'}`}>
-                        Out{i + 1}: {o ? '1' : '0'}
+                      <span
+                        key={i}
+                        className={`inline-block mr-3 p-1 px-2 rounded ${
+                          o ? "bg-green-600" : "bg-gray-700"
+                        }`}
+                      >
+                        Out{i + 1}: {o ? "1" : "0"}
                       </span>
                     ))}
                   </div>
@@ -385,43 +427,57 @@ export default function LogicGatesModule() {
           <div className="lg:col-span-1 space-y-6">
             {/* Gate Legend */}
             <Card gradient="from-purple-600 to-indigo-600">
-              <h3 className="text-xl font-bold text-white mb-4">� Gate Legend</h3>
+              <h3 className="text-xl font-bold text-white mb-4">
+                � Gate Legend
+              </h3>
               <div className="text-white space-y-2 text-sm">
                 <div className="flex justify-between items-center">
                   <span className="font-semibold">AND:</span>
                   <span className="font-mono">A · B</span>
                 </div>
-                <p className="text-xs text-white/70 mb-3">Output ON hanya jika SEMUA input ON</p>
-                
+                <p className="text-xs text-white/70 mb-3">
+                  Output ON hanya jika SEMUA input ON
+                </p>
+
                 <div className="flex justify-between items-center">
                   <span className="font-semibold">OR:</span>
                   <span className="font-mono">A + B</span>
                 </div>
-                <p className="text-xs text-white/70 mb-3">Output ON jika SALAH SATU input ON</p>
-                
+                <p className="text-xs text-white/70 mb-3">
+                  Output ON jika SALAH SATU input ON
+                </p>
+
                 <div className="flex justify-between items-center">
                   <span className="font-semibold">NOT:</span>
                   <span className="font-mono">Ā</span>
                 </div>
-                <p className="text-xs text-white/70 mb-3">Output KEBALIKAN dari input</p>
-                
+                <p className="text-xs text-white/70 mb-3">
+                  Output KEBALIKAN dari input
+                </p>
+
                 <div className="flex justify-between items-center">
                   <span className="font-semibold">NAND:</span>
                   <span className="font-mono">!(A · B)</span>
                 </div>
-                <p className="text-xs text-white/70 mb-3">Output OFF hanya jika SEMUA input ON</p>
-                
+                <p className="text-xs text-white/70 mb-3">
+                  Output OFF hanya jika SEMUA input ON
+                </p>
+
                 <div className="flex justify-between items-center">
                   <span className="font-semibold">XOR:</span>
                   <span className="font-mono">A ⊕ B</span>
                 </div>
-                <p className="text-xs text-white/70">Output ON jika input BERBEDA</p>
+                <p className="text-xs text-white/70">
+                  Output ON jika input BERBEDA
+                </p>
               </div>
             </Card>
 
             {/* Quick Tips */}
             <Card gradient="from-blue-600 to-indigo-600">
-              <h3 className="text-xl font-bold text-white mb-4">� Tips Cepat</h3>
+              <h3 className="text-xl font-bold text-white mb-4">
+                � Tips Cepat
+              </h3>
               <div className="text-white space-y-3 text-sm">
                 <div className="flex items-start gap-2">
                   <span className="text-green-400">1.</span>
@@ -453,17 +509,29 @@ export default function LogicGatesModule() {
                 <div className="text-white">
                   <p className="text-sm mb-2">Challenge Selesai:</p>
                   <p className="text-3xl font-bold">
-                    {completedChallenges.filter(c => c).length}/{challenges.length}
+                    {completedChallenges.filter((c) => c).length}/
+                    {challenges.length}
                   </p>
                 </div>
                 <div className="w-full bg-white/20 rounded-full h-3">
-                  <div 
+                  <div
                     className="bg-green-400 h-3 rounded-full transition-all duration-500"
-                    style={{ width: `${(completedChallenges.filter(c => c).length / challenges.length) * 100}%` }}
+                    style={{
+                      width: `${
+                        (completedChallenges.filter((c) => c).length /
+                          challenges.length) *
+                        100
+                      }%`,
+                    }}
                   />
                 </div>
                 <div className="text-white text-sm">
-                  <p>Best Score: <span className="font-bold text-yellow-300">{bestScore}%</span></p>
+                  <p>
+                    Best Score:{" "}
+                    <span className="font-bold text-yellow-300">
+                      {bestScore}%
+                    </span>
+                  </p>
                 </div>
               </div>
             </Card>
