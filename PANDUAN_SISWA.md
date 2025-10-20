@@ -205,27 +205,48 @@ Transistor: Segitiga dengan 3 kaki
 
 ---
 
-### **Level 4: Gerbang Logika Digital** 🟡 SEDANG
+### **Level 4: Gerbang Logika Digital** � MUDAH-SEDANG
 
 **Apa yang dipelajari?**
 
-- Gerbang logika dasar: **AND, OR, NOT, XOR**
+- Gerbang logika dasar: **AND, OR, NOT, NAND, XOR**
 - Tabel kebenaran (truth table)
-- Kombinasi gerbang logika
-- **Half Adder** (penjumlah biner sederhana)
+- Cara kerja setiap gerbang logika
+- Simulasi rangkaian logika sederhana
 
 **Cara bermain:**
 
-1. Pilih gerbang logika yang tersedia
-2. Susun rangkaian logika di simulator
-3. Set input (0 atau 1)
-4. Lihat output yang dihasilkan
-5. Cocokkan dengan target output
+1. Pilih challenge yang ingin diselesaikan (dari 1-5)
+2. Pilih gate dari toolbox (INPUT, OUTPUT, AND, OR, NOT, dll)
+3. Klik di canvas untuk meletakkan gate
+4. Hubungkan gate dengan menarik garis (wire)
+5. Toggle input ON/OFF (hijau = ON, abu = OFF)
+6. Klik "Simulate" untuk menjalankan
+7. Cocokkan output dengan yang diharapkan
 
-**Contoh:**
+**Challenge yang tersedia:**
+
+1. **Gerbang AND** - Output ON jika KEDUA input ON
+2. **Gerbang OR** - Output ON jika SALAH SATU input ON
+3. **Gerbang NOT** - Output KEBALIKAN dari input
+4. **Gerbang NAND** - Output OFF hanya jika KEDUA input ON
+5. **Gerbang XOR** - Output ON jika input BERBEDA
+
+**Contoh Sederhana (AND Gate):**
 
 ```
-AND Gate:
+Langkah:
+1. Letakkan 2 INPUT node
+2. Letakkan 1 AND gate
+3. Letakkan 1 OUTPUT node
+4. Hubungkan: INPUT → AND → OUTPUT
+5. Toggle input, klik Simulate
+6. Lihat hasilnya!
+```
+
+**Truth Table AND:**
+
+```
 Input A | Input B | Output
    0    |    0    |   0
    0    |    1    |   0
@@ -233,14 +254,18 @@ Input A | Input B | Output
    1    |    1    |   1    (Keduanya 1 → Output 1)
 ```
 
-**Target:** Skor minimal **70%** untuk unlock Level 5
+**Target:** Skor minimal **70%** (selesaikan 4 dari 5 challenge)
 
 **Tips:**
 
-- AND = Keduanya harus 1
-- OR = Salah satu 1 sudah cukup
-- NOT = Membalik (0→1, 1→0)
-- XOR = Berbeda menghasilkan 1
+- Gunakan tombol "Truth Table" untuk melihat jawaban yang benar
+- AND = Keduanya harus ON
+- OR = Salah satu ON sudah cukup
+- NOT = Membalik sinyal (0→1, 1→0)
+- NAND = Kebalikan dari AND
+- XOR = Hanya ON jika input BERBEDA
+- Mulai dari challenge 1, lalu naik bertahap
+- Klik "Clear" untuk reset jika salah
 
 ---
 

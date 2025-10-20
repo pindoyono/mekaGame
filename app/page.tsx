@@ -206,7 +206,7 @@ export default function Home() {
                   Panduan
                 </Button>
               </Link>
-              
+
               {isAuthenticated && user ? (
                 <>
                   <Link href="/leaderboard">
