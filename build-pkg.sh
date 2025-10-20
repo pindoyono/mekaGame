@@ -21,8 +21,8 @@ echo "   Target: Windows x64"
 echo "   Output: dist-pkg/MekaGame.exe"
 echo ""
 
-# Build with PKG
-npx pkg server.js \
+# Build with PKG (using sql.js version - no native bindings!)
+npx pkg server-sqljs.js \
   --targets node18-win-x64 \
   --output dist-pkg/MekaGame.exe \
   --compress Brotli
@@ -42,6 +42,8 @@ cp -r out dist-pkg/
 # Copy data folder structure (empty, will be created on first run)
 mkdir -p dist-pkg/data
 touch dist-pkg/data/.gitkeep
+
+echo "✅ Using sql.js (pure JavaScript SQLite) - no native bindings needed!"
 
 # Create README
 cat > dist-pkg/README.txt << 'EOF'

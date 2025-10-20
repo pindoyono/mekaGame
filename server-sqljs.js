@@ -1,38 +1,20 @@
 /**
- * MekaGame Standalone Server
- * Portable Node.js server dengan SQLite database
- * Untuk di-bundle menjadi single .exe menggunakan PKG
+ * MekaGame Standalone Server (sql.js version)
+ * Menggunakan sql.js (SQLite compiled to WebAssembly) - NO NATIVE BINDINGS!
+ * 100% portable, works everywhere including PKG bundles
  */
 
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
-const { app: electronApp } = process.versions.electron ? require('electron') : { app: null };
-
-// Load better-sqlite3 with proper path handling for PKG
-let Database;
-try {
-  if (process.pkg) {
-    // When running as PKG bundle, try to load from extracted location
-    const betterSqlitePath = path.join(path.dirname(process.execPath), 'node_modules', 'better-sqlite3');
-    Database = require(betterSqlitePath);
-  } else {
-    Database = require('better-sqlite3');
-  }
-} catch (err) {
-  console.error('❌ Failed to load better-sqlite3:', err.message);
-  Database = require('better-sqlite3'); // Fallback to normal require
-}
+const initSqlJs = require('sql.js');
 
 const app = express();
 const PORT = 3000;
 
 // Get the correct base directory
-// When bundled with PKG, use process.execPath directory
-// Otherwise use __dirname
 const getBaseDir = () => {
   if (process.pkg) {
-    // Running as PKG bundle - use executable directory
     return path.dirname(process.execPath);
   }
   return __dirname;
@@ -41,6 +23,7 @@ const getBaseDir = () => {
 const baseDir = getBaseDir();
 const outDir = path.join(baseDir, 'out');
 const dataDir = path.join(baseDir, 'data');
+const dbPath = path.join(dataDir, 'mekagame.db');
 
 console.log('🔍 Base directory:', baseDir);
 console.log('📁 Out directory:', outDir);
@@ -49,7 +32,7 @@ console.log('💾 Data directory:', dataDir);
 // Middleware
 app.use(express.json());
 
-// Serve static files from 'out' directory
+// Serve static files
 if (fs.existsSync(outDir)) {
   app.use(express.static(outDir));
   console.log('✅ Serving static files from:', outDir);
@@ -59,25 +42,36 @@ if (fs.existsSync(outDir)) {
   process.exit(1);
 }
 
-// Database setup
-let db;
-const dbPath = electronApp 
-  ? path.join(electronApp.getPath('userData'), 'mekagame.db')
-  : path.join(dataDir, 'mekagame.db');
-
 // Ensure data directory exists
 if (!fs.existsSync(dataDir)) {
   console.log('📁 Creating data directory:', dataDir);
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
+// Database instance
+let db = null;
+let SQL = null;
+
 // Initialize database
-function initDatabase() {
+async function initDatabase() {
   try {
-    console.log('💾 Initializing database at:', dbPath);
-    db = new Database(dbPath);
+    console.log('💾 Initializing sql.js database...');
     
-    db.exec(`
+    // Initialize sql.js
+    SQL = await initSqlJs();
+    
+    // Load existing database or create new one
+    if (fs.existsSync(dbPath)) {
+      console.log('📂 Loading existing database from:', dbPath);
+      const buffer = fs.readFileSync(dbPath);
+      db = new SQL.Database(buffer);
+    } else {
+      console.log('📝 Creating new database at:', dbPath);
+      db = new SQL.Database();
+    }
+    
+    // Create tables
+    db.run(`
       CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE NOT NULL,
@@ -89,21 +83,32 @@ function initDatabase() {
       CREATE TABLE IF NOT EXISTS progress (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
-      level INTEGER NOT NULL,
-      score INTEGER NOT NULL,
-      completed BOOLEAN DEFAULT 0,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users (id),
-      UNIQUE(user_id, level)
-    );
-  `);
-
+        level INTEGER NOT NULL,
+        score INTEGER NOT NULL,
+        completed BOOLEAN DEFAULT 0,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users (id),
+        UNIQUE(user_id, level)
+      );
+    `);
+    
+    // Save to disk
+    saveDatabase();
+    
     console.log('✅ Database initialized at:', dbPath);
     console.log('✅ Database ready!');
   } catch (error) {
     console.error('❌ Database initialization failed:', error.message);
-    console.error('   Path:', dbPath);
     throw error;
+  }
+}
+
+// Save database to disk
+function saveDatabase() {
+  if (db) {
+    const data = db.export();
+    const buffer = Buffer.from(data);
+    fs.writeFileSync(dbPath, buffer);
   }
 }
 
@@ -114,9 +119,14 @@ app.post('/api/register', (req, res) => {
   const { username, password, name } = req.body;
   
   try {
-    const stmt = db.prepare('INSERT INTO users (username, password, name) VALUES (?, ?, ?)');
-    const result = stmt.run(username, password, name);
-    res.json({ success: true, userId: result.lastInsertRowid });
+    db.run('INSERT INTO users (username, password, name) VALUES (?, ?, ?)', 
+           [username, password, name]);
+    saveDatabase();
+    
+    const result = db.exec('SELECT last_insert_rowid() as id');
+    const userId = result[0].values[0][0];
+    
+    res.json({ success: true, userId });
   } catch (error) {
     res.json({ success: false, error: error.message });
   }
@@ -127,10 +137,18 @@ app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
   
   try {
-    const stmt = db.prepare('SELECT id, username, name FROM users WHERE username = ? AND password = ?');
-    const user = stmt.get(username, password);
+    const result = db.exec(
+      'SELECT id, username, name FROM users WHERE username = ? AND password = ?',
+      [username, password]
+    );
     
-    if (user) {
+    if (result.length > 0 && result[0].values.length > 0) {
+      const row = result[0].values[0];
+      const user = {
+        id: row[0],
+        username: row[1],
+        name: row[2]
+      };
       res.json({ success: true, user });
     } else {
       res.json({ success: false, error: 'Invalid username or password' });
@@ -145,8 +163,23 @@ app.get('/api/progress/:userId', (req, res) => {
   const { userId } = req.params;
   
   try {
-    const stmt = db.prepare('SELECT * FROM progress WHERE user_id = ? ORDER BY level ASC');
-    const progress = stmt.all(userId);
+    const result = db.exec(
+      'SELECT * FROM progress WHERE user_id = ? ORDER BY level ASC',
+      [userId]
+    );
+    
+    let progress = [];
+    if (result.length > 0) {
+      const columns = result[0].columns;
+      progress = result[0].values.map(row => {
+        let obj = {};
+        columns.forEach((col, idx) => {
+          obj[col] = row[idx];
+        });
+        return obj;
+      });
+    }
+    
     res.json({ success: true, progress });
   } catch (error) {
     res.json({ success: false, error: error.message });
@@ -158,13 +191,27 @@ app.post('/api/progress', (req, res) => {
   const { userId, level, score, completed } = req.body;
   
   try {
-    const stmt = db.prepare(`
-      INSERT INTO progress (user_id, level, score, completed, updated_at) 
-      VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-      ON CONFLICT(user_id, level) 
-      DO UPDATE SET score = ?, completed = ?, updated_at = CURRENT_TIMESTAMP
-    `);
-    stmt.run(userId, level, score, completed ? 1 : 0, score, completed ? 1 : 0);
+    // Check if exists
+    const check = db.exec(
+      'SELECT id FROM progress WHERE user_id = ? AND level = ?',
+      [userId, level]
+    );
+    
+    if (check.length > 0 && check[0].values.length > 0) {
+      // Update
+      db.run(
+        'UPDATE progress SET score = ?, completed = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND level = ?',
+        [score, completed ? 1 : 0, userId, level]
+      );
+    } else {
+      // Insert
+      db.run(
+        'INSERT INTO progress (user_id, level, score, completed) VALUES (?, ?, ?, ?)',
+        [userId, level, score, completed ? 1 : 0]
+      );
+    }
+    
+    saveDatabase();
     res.json({ success: true });
   } catch (error) {
     res.json({ success: false, error: error.message });
@@ -174,29 +221,39 @@ app.post('/api/progress', (req, res) => {
 // Get leaderboard
 app.get('/api/leaderboard', (req, res) => {
   try {
-    const stmt = db.prepare(`
+    const result = db.exec(`
       SELECT 
         u.name,
         u.username,
         SUM(p.score) as totalScore,
-        COUNT(CASE WHEN p.completed = 1 THEN 1 END) as completedLevels
+        SUM(CASE WHEN p.completed = 1 THEN 1 ELSE 0 END) as completedLevels
       FROM users u
       LEFT JOIN progress p ON u.id = p.user_id
       GROUP BY u.id
       ORDER BY totalScore DESC, completedLevels DESC
       LIMIT 10
     `);
-    const leaderboard = stmt.all();
+    
+    let leaderboard = [];
+    if (result.length > 0) {
+      const columns = result[0].columns;
+      leaderboard = result[0].values.map(row => {
+        let obj = {};
+        columns.forEach((col, idx) => {
+          obj[col] = row[idx];
+        });
+        return obj;
+      });
+    }
+    
     res.json({ success: true, leaderboard });
   } catch (error) {
     res.json({ success: false, error: error.message });
   }
 });
 
-// SPA fallback - serve index.html for any non-API routes
-// This should be LAST after all other routes
+// SPA fallback
 app.use((req, res, next) => {
-  // Only serve HTML for non-API routes
   if (!req.path.startsWith('/api/')) {
     const indexPath = path.join(outDir, 'index.html');
     if (fs.existsSync(indexPath)) {
@@ -212,13 +269,11 @@ app.use((req, res, next) => {
 // Start server
 console.log('\n🚀 Starting MekaGame Server...\n');
 
-try {
-  initDatabase();
-  
+initDatabase().then(() => {
   app.listen(PORT, '127.0.0.1', () => {
     console.log('');
     console.log('=' .repeat(60));
-    console.log('  🎮 MekaGame Server');
+    console.log('  🎮 MekaGame Server (sql.js)');
     console.log('=' .repeat(60));
     console.log('');
     console.log(`  ✅ Server running at: http://localhost:${PORT}`);
@@ -231,15 +286,15 @@ try {
     console.log('=' .repeat(60));
     console.log('');
     
-    // Auto-open browser (optional, may not work in WSL)
+    // Auto-open browser
     try {
       const open = require('open');
       open(`http://localhost:${PORT}`);
     } catch (err) {
-      // Silently fail if 'open' doesn't work
+      // Silently fail
     }
   });
-} catch (error) {
+}).catch(error => {
   console.error('\n❌ FATAL ERROR: Server failed to start!\n');
   console.error('Error:', error.message);
   console.error('\nPlease check:');
@@ -248,11 +303,14 @@ try {
   console.error('  3. Port 3000 is not already in use\n');
   console.error('Press any key to exit...');
   process.stdin.once('data', () => process.exit(1));
-}
+});
 
 // Graceful shutdown
 process.on('SIGINT', () => {
   console.log('\n\n👋 Server dihentikan. Terima kasih!');
-  if (db) db.close();
+  saveDatabase();
   process.exit(0);
 });
+
+// Periodic save (every 30 seconds)
+setInterval(saveDatabase, 30000);
