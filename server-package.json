@@ -1,0 +1,16 @@
+{
+  "name": "meka-game-server",
+  "version": "1.0.0",
+  "description": "MekaGame Standalone Server",
+  "main": "server.js",
+  "bin": "server.js",
+  "pkg": {
+    "assets": ["out/**/*"],
+    "targets": ["node18-win-x64"],
+    "outputPath": "dist-pkg"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "build:pkg": "npm run build && pkg . --targets node18-win-x64 --output dist-pkg/MekaGame.exe"
+  }
+}

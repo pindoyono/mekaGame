@@ -48,30 +48,88 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Detect storage mode
+function getStorageMode() {
+  if (typeof window === "undefined") return "localStorage";
+
+  // Check if running in Electron
+  if ((window as any).electronAPI) {
+    return "electron";
+  }
+
+  // Check if API server is available
+  if (
+    window.location.protocol === "http:" &&
+    window.location.hostname === "localhost"
+  ) {
+    return "api";
+  }
+
+  // Default to localStorage
+  return "localStorage";
+}
+
 // Storage keys
 const STORAGE_KEYS = {
   CURRENT_USER: "mekaGame_currentUser",
   ALL_USERS: "mekaGame_allUsers",
 };
 
+// API helper functions
+async function apiCall(endpoint: string, method: string = "GET", data?: any) {
+  try {
+    const options: RequestInit = {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    };
+
+    if (data) {
+      options.body = JSON.stringify(data);
+    }
+
+    const response = await fetch(
+      `http://localhost:3000/api${endpoint}`,
+      options
+    );
+    return await response.json();
+  } catch (error) {
+    console.error("API call failed:", error);
+    return { success: false, error: "Network error" };
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [storageMode, setStorageMode] = useState<
+    "electron" | "api" | "localStorage"
+  >("localStorage");
 
-  // Load user from localStorage on mount
+  // Detect storage mode on mount
   useEffect(() => {
-    const savedUser = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-    if (savedUser) {
-      try {
-        const parsedUser = JSON.parse(savedUser);
-        setUser(parsedUser);
-        setIsAuthenticated(true);
-      } catch (error) {
-        console.error("Failed to parse user data:", error);
-        localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+    const mode = getStorageMode();
+    setStorageMode(mode);
+    console.log("🔧 Storage mode:", mode);
+  }, []);
+
+  // Load user from storage on mount
+  useEffect(() => {
+    if (storageMode === "localStorage") {
+      const savedUser = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+      if (savedUser) {
+        try {
+          const parsedUser = JSON.parse(savedUser);
+          setUser(parsedUser);
+          setIsAuthenticated(true);
+        } catch (error) {
+          console.error("Failed to parse user data:", error);
+          localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+        }
       }
     }
-  }, []);
+  }, [storageMode]);
 
   // Get all users from localStorage
   const getAllUsers = (): User[] => {
@@ -112,53 +170,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return false;
     }
 
-    // Check if username already exists
-    const allUsers = getAllUsers();
-    const existingUser = allUsers.find(
-      (u) => u.username.toLowerCase() === username.toLowerCase()
-    );
-
-    if (existingUser) {
-      alert("Username sudah terdaftar!");
-      return false;
-    }
-
-    // Check if email already exists
-    const existingEmail = allUsers.find(
-      (u) => u.email.toLowerCase() === email.toLowerCase()
-    );
-
-    if (existingEmail) {
-      alert("Email sudah terdaftar!");
-      return false;
-    }
-
-    // Create new user
-    const newUser: User = {
-      id: Date.now().toString(),
-      username,
-      email,
-      displayName,
-      createdAt: new Date().toISOString(),
-      totalScore: 0,
-      levelsCompleted: 0,
-      progress: [],
-    };
-
-    // If running inside Electron, use IPC to register user in SQLite
-    // @ts-ignore
-    if (typeof window !== "undefined" && (window as any).electronAPI) {
-      try {
-        // electron main will return { success, userId }
-        // We still create a client-side user object for the session
+    try {
+      // Mode: Electron IPC
+      if (
+        storageMode === "electron" &&
+        typeof window !== "undefined" &&
+        (window as any).electronAPI
+      ) {
         const resp = await (window as any).electronAPI.registerUser({
           username,
           password,
           name: displayName,
         });
+
         if (resp && resp.success) {
           const createdUser: User = {
-            id: String(resp.userId),
+            id: resp.userId.toString(),
             username,
             email,
             displayName,
@@ -167,7 +194,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             levelsCompleted: 0,
             progress: [],
           };
+          setUser(createdUser);
+          setIsAuthenticated(true);
+          return true;
+        } else {
+          alert(resp.error || "Registrasi gagal!");
+          return false;
+        }
+      }
 
+      // Mode: API Server
+      if (storageMode === "api") {
+        const resp = await apiCall("/register", "POST", {
+          username,
+          password,
+          name: displayName,
+        });
+
+        if (resp.success) {
+          const createdUser: User = {
+            id: resp.userId.toString(),
+            username,
+            email,
+            displayName,
+            createdAt: new Date().toISOString(),
+            totalScore: 0,
+            levelsCompleted: 0,
+            progress: [],
+          };
           setUser(createdUser);
           setIsAuthenticated(true);
           localStorage.setItem(
@@ -175,27 +229,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             JSON.stringify(createdUser)
           );
           return true;
+        } else {
+          alert(resp.error || "Registrasi gagal!");
+          return false;
         }
+      }
 
-        alert(resp.error || "Gagal mendaftar (Electron)");
-        return false;
-      } catch (err) {
-        console.error("Electron register error", err);
-        alert("Terjadi kesalahan saat mendaftar");
+      // Mode: localStorage (default)
+      const allUsers = getAllUsers();
+      const existingUser = allUsers.find(
+        (u) => u.username.toLowerCase() === username.toLowerCase()
+      );
+
+      if (existingUser) {
+        alert("Username sudah terdaftar!");
         return false;
       }
+
+      const existingEmail = allUsers.find(
+        (u) => u.email.toLowerCase() === email.toLowerCase()
+      );
+
+      if (existingEmail) {
+        alert("Email sudah terdaftar!");
+        return false;
+      }
+
+      const newUser: User = {
+        id: Date.now().toString(),
+        username,
+        email,
+        displayName,
+        createdAt: new Date().toISOString(),
+        totalScore: 0,
+        levelsCompleted: 0,
+        progress: [],
+      };
+
+      // Save to localStorage
+      const updatedUsers = [...allUsers, newUser];
+      saveAllUsers(updatedUsers);
+
+      // Auto login
+      setUser(newUser);
+      setIsAuthenticated(true);
+      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(newUser));
+
+      return true;
+    } catch (err) {
+      console.error("Register error:", err);
+      alert("Terjadi kesalahan saat mendaftar");
+      return false;
     }
-
-    // Save to localStorage (web fallback)
-    const updatedUsers = [...allUsers, newUser];
-    saveAllUsers(updatedUsers);
-
-    // Auto login
-    setUser(newUser);
-    setIsAuthenticated(true);
-    localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(newUser));
-
-    return true;
   };
 
   // Login user
@@ -207,14 +292,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       alert("Username dan password harus diisi!");
       return false;
     }
-    // If in Electron, call IPC login which checks DB
-    // @ts-ignore
-    if (typeof window !== "undefined" && (window as any).electronAPI) {
-      try {
+
+    try {
+      // Mode: Electron IPC
+      if (
+        storageMode === "electron" &&
+        typeof window !== "undefined" &&
+        (window as any).electronAPI
+      ) {
         const resp = await (window as any).electronAPI.loginUser({
           username,
           password,
         });
+
         if (resp && resp.success && resp.user) {
           const userFromDb: User = {
             id: String(resp.user.id),
@@ -228,42 +318,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           };
           setUser(userFromDb);
           setIsAuthenticated(true);
+          return true;
+        }
+
+        alert(resp.error || "Login gagal!");
+        return false;
+      }
+
+      // Mode: API Server
+      if (storageMode === "api") {
+        const resp = await apiCall("/login", "POST", {
+          username,
+          password,
+        });
+
+        if (resp.success && resp.user) {
+          const userFromApi: User = {
+            id: String(resp.user.id),
+            username: resp.user.username,
+            email: username + "@local", // placeholder
+            displayName: resp.user.name || resp.user.username,
+            createdAt: new Date().toISOString(),
+            totalScore: 0,
+            levelsCompleted: 0,
+            progress: [],
+          };
+          setUser(userFromApi);
+          setIsAuthenticated(true);
           localStorage.setItem(
             STORAGE_KEYS.CURRENT_USER,
-            JSON.stringify(userFromDb)
+            JSON.stringify(userFromApi)
           );
           return true;
         }
-        alert(resp.error || "Login gagal (Electron)");
-        return false;
-      } catch (err) {
-        console.error("Electron login error", err);
-        alert("Terjadi kesalahan saat login");
+
+        alert(resp.error || "Login gagal!");
         return false;
       }
-    }
 
-    // Web fallback: localStorage-based login
-    const allUsers = getAllUsers();
-    const foundUser = allUsers.find(
-      (u) => u.username.toLowerCase() === username.toLowerCase()
-    );
+      // Mode: localStorage (default)
+      const allUsers = getAllUsers();
+      const foundUser = allUsers.find(
+        (u) => u.username.toLowerCase() === username.toLowerCase()
+      );
 
-    if (!foundUser) {
-      alert("Username tidak ditemukan!");
+      if (!foundUser) {
+        alert("Username tidak ditemukan!");
+        return false;
+      }
+
+      setUser(foundUser);
+      setIsAuthenticated(true);
+      localStorage.setItem(
+        STORAGE_KEYS.CURRENT_USER,
+        JSON.stringify(foundUser)
+      );
+
+      return true;
+    } catch (err) {
+      console.error("Login error:", err);
+      alert("Terjadi kesalahan saat login");
       return false;
     }
-
-    if (password.length < 6) {
-      alert("Password salah!");
-      return false;
-    }
-
-    setUser(foundUser);
-    setIsAuthenticated(true);
-    localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(foundUser));
-
-    return true;
   };
 
   // Logout user
@@ -281,9 +397,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ) => {
     if (!user) return;
 
-    // If running inside Electron, delegate save to main process
-    // @ts-ignore
-    if (typeof window !== "undefined" && (window as any).electronAPI) {
+    // Mode: Electron IPC
+    if (
+      storageMode === "electron" &&
+      typeof window !== "undefined" &&
+      (window as any).electronAPI
+    ) {
       try {
         (window as any).electronAPI.updateProgress({
           userId: user.id,
@@ -294,64 +413,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (err) {
         console.error("Electron updateProgress error", err);
       }
-      // Keep local session updated for UI
-      const existingProgressIndex = user.progress.findIndex(
-        (p) => p.levelId === levelId
-      );
-      let updatedProgress = [...user.progress];
-
-      if (existingProgressIndex !== -1) {
-        const existing = updatedProgress[existingProgressIndex];
-        updatedProgress[existingProgressIndex] = {
-          ...existing,
-          score,
-          completed: completed || existing.completed,
-          attempts: existing.attempts + 1,
-          bestScore: Math.max(existing.bestScore, score),
-          completedAt: completed
-            ? new Date().toISOString()
-            : existing.completedAt,
-        };
-      } else {
-        updatedProgress.push({
-          levelId,
-          completed,
-          score,
-          attempts: 1,
-          bestScore: score,
-          completedAt: completed ? new Date().toISOString() : undefined,
-        });
-      }
-
-      const totalScore = updatedProgress.reduce(
-        (sum, p) => sum + p.bestScore,
-        0
-      );
-      const levelsCompleted = updatedProgress.filter((p) => p.completed).length;
-
-      const updatedUser: User = {
-        ...user,
-        progress: updatedProgress,
-        totalScore,
-        levelsCompleted,
-      };
-
-      setUser(updatedUser);
-      localStorage.setItem(
-        STORAGE_KEYS.CURRENT_USER,
-        JSON.stringify(updatedUser)
-      );
-      return;
     }
 
-    // Web fallback: localStorage update logic
+    // Mode: API Server
+    if (storageMode === "api") {
+      apiCall("/progress", "POST", {
+        userId: user.id,
+        level: levelId,
+        score,
+        completed,
+      }).catch((err) => console.error("API updateProgress error", err));
+    }
+
+    // Update local state for UI (all modes)
     const existingProgressIndex = user.progress.findIndex(
       (p) => p.levelId === levelId
     );
     let updatedProgress = [...user.progress];
 
     if (existingProgressIndex !== -1) {
-      // Update existing progress
       const existing = updatedProgress[existingProgressIndex];
       updatedProgress[existingProgressIndex] = {
         ...existing,
@@ -364,7 +444,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           : existing.completedAt,
       };
     } else {
-      // Add new progress
       updatedProgress.push({
         levelId,
         completed,
@@ -375,7 +454,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     }
 
-    // Calculate total score and completed levels
     const totalScore = updatedProgress.reduce((sum, p) => sum + p.bestScore, 0);
     const levelsCompleted = updatedProgress.filter((p) => p.completed).length;
 
@@ -386,21 +464,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       levelsCompleted,
     };
 
-    // Update state
     setUser(updatedUser);
 
-    // Update localStorage for current user
+    // Save to localStorage for session persistence
     localStorage.setItem(
       STORAGE_KEYS.CURRENT_USER,
       JSON.stringify(updatedUser)
     );
 
-    // Update in all users list
-    const allUsers = getAllUsers();
-    const userIndex = allUsers.findIndex((u) => u.id === user.id);
-    if (userIndex !== -1) {
-      allUsers[userIndex] = updatedUser;
-      saveAllUsers(allUsers);
+    // Update all users list (localStorage mode)
+    if (storageMode === "localStorage") {
+      const allUsers = getAllUsers();
+      const updatedUsers = allUsers.map((u) =>
+        u.id === user.id ? updatedUser : u
+      );
+      saveAllUsers(updatedUsers);
     }
   };
 

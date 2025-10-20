@@ -16,3 +16,13 @@ next-env.d.ts
 # Electron build output (binaries too large for git)
 dist/
 !dist/README-INSTALASI.txt
+
+# PKG build output
+dist-pkg/
+out/
+*.zip
+*.exe
+data/
+
+# Portable folders (redundant with out/)
+portable/out/
