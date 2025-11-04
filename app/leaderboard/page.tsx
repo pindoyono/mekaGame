@@ -18,26 +18,108 @@ import Button from "@/components/Button";
 import Card from "@/components/Card";
 import { useAuth, User } from "@/contexts/AuthContext";
 
+interface LeaderboardEntry {
+  name: string;
+  username: string;
+  totalScore: number;
+  completedLevels: number;
+}
+
 export default function LeaderboardPage() {
-  const { getAllUsers, user: currentUser } = useAuth();
-  const [leaderboard, setLeaderboard] = useState<User[]>([]);
+  const { user: currentUser } = useAuth();
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get all users and sort by total score
-    const users = getAllUsers();
-    const sorted = users.sort((a, b) => {
-      // First sort by total score
-      if (b.totalScore !== a.totalScore) {
-        return b.totalScore - a.totalScore;
+    const fetchLeaderboard = async () => {
+      setLoading(true);
+
+      // Detect if we're in API mode (localhost with server)
+      const isApiMode =
+        typeof window !== "undefined" &&
+        window.location.protocol === "http:" &&
+        (window.location.hostname === "localhost" ||
+          window.location.hostname.match(/^192\.168\./));
+
+      if (isApiMode) {
+        // Fetch from API (multi-user mode)
+        try {
+          const baseUrl = window.location.origin;
+          const response = await fetch(`${baseUrl}/api/leaderboard`);
+          const data = await response.json();
+
+          if (data.success && data.leaderboard) {
+            setLeaderboard(data.leaderboard);
+          } else {
+            console.error("Failed to fetch leaderboard:", data.error);
+            setLeaderboard([]);
+          }
+        } catch (error) {
+          console.error("Error fetching leaderboard:", error);
+          setLeaderboard([]);
+        }
+      } else {
+        // Fallback to localStorage (single-user mode)
+        const users: any[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith("user_")) {
+            try {
+              const userData = JSON.parse(localStorage.getItem(key) || "{}");
+              users.push(userData);
+            } catch (e) {
+              // Skip invalid entries
+            }
+          }
+        }
+
+        // Calculate scores
+        const leaderboardData = users
+          .map((user) => {
+            const totalScore =
+              user.progress?.reduce(
+                (sum: number, p: any) => sum + (p.score || 0),
+                0
+              ) || 0;
+            const completedLevels =
+              user.progress?.filter((p: any) => p.completed).length || 0;
+
+            return {
+              name: user.displayName || user.username,
+              username: user.username,
+              totalScore,
+              completedLevels,
+            };
+          })
+          .sort((a, b) => {
+            if (b.totalScore !== a.totalScore)
+              return b.totalScore - a.totalScore;
+            return b.completedLevels - a.completedLevels;
+          });
+
+        setLeaderboard(leaderboardData);
       }
-      // If same score, sort by levels completed
-      if (b.levelsCompleted !== a.levelsCompleted) {
-        return b.levelsCompleted - a.levelsCompleted;
-      }
-      // If still same, sort by registration date (earlier is better)
-      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-    });
-    setLeaderboard(sorted);
+
+      setLoading(false);
+    };
+
+    fetchLeaderboard();
+
+    // Auto-refresh every 10 seconds when using API mode
+    const isApiMode =
+      typeof window !== "undefined" &&
+      window.location.protocol === "http:" &&
+      (window.location.hostname === "localhost" ||
+        window.location.hostname.match(/^192\.168\./));
+    let interval: NodeJS.Timeout | null = null;
+
+    if (isApiMode) {
+      interval = setInterval(fetchLeaderboard, 10000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, []);
 
   const getRankIcon = (rank: number) => {
@@ -72,7 +154,9 @@ export default function LeaderboardPage() {
 
   const getCurrentUserRank = () => {
     if (!currentUser) return null;
-    return leaderboard.findIndex((u) => u.id === currentUser.id) + 1;
+    return (
+      leaderboard.findIndex((u) => u.username === currentUser.username) + 1
+    );
   };
 
   return (
@@ -165,7 +249,7 @@ export default function LeaderboardPage() {
                 <Award className="w-8 h-8 mx-auto mb-2" />
                 <p className="text-sm font-medium">Champion</p>
                 <p className="text-lg font-bold truncate px-2">
-                  {leaderboard[0]?.displayName || "-"}
+                  {leaderboard[0]?.name || "-"}
                 </p>
               </div>
             </Card>
@@ -182,24 +266,33 @@ export default function LeaderboardPage() {
           {leaderboard.length === 0 ? (
             <div className="text-center py-12">
               <Trophy className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 text-lg mb-2">Belum ada player</p>
-              <p className="text-gray-400 mb-4">Jadilah yang pertama!</p>
-              <Link href="/register">
-                <Button>Daftar Sekarang</Button>
-              </Link>
+              {loading ? (
+                <>
+                  <p className="text-gray-500 text-lg mb-2">Loading...</p>
+                  <p className="text-gray-400">Memuat data leaderboard</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-gray-500 text-lg mb-2">Belum ada player</p>
+                  <p className="text-gray-400 mb-4">Jadilah yang pertama!</p>
+                  <Link href="/register">
+                    <Button>Daftar Sekarang</Button>
+                  </Link>
+                </>
+              )}
             </div>
           ) : (
             <div className="space-y-3">
               {leaderboard.map((player, index) => {
                 const rank = index + 1;
-                const isCurrentUser = currentUser?.id === player.id;
+                const isCurrentUser = currentUser?.username === player.username;
                 const completionRate = Math.round(
-                  (player.levelsCompleted / 12) * 100
+                  (player.completedLevels / 12) * 100
                 );
 
                 return (
                   <motion.div
-                    key={player.id}
+                    key={`${player.username}-${index}`}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
@@ -220,7 +313,7 @@ export default function LeaderboardPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center space-x-2">
                             <p className="font-bold text-gray-900 truncate">
-                              {player.displayName}
+                              {player.name}
                             </p>
                             {isCurrentUser && (
                               <span className="bg-yellow-400 text-yellow-900 text-xs px-2 py-1 rounded-full font-bold">
@@ -256,7 +349,7 @@ export default function LeaderboardPage() {
                         <div className="text-center hidden md:block">
                           <p className="text-xs text-gray-600">Level</p>
                           <p className="font-bold text-gray-900">
-                            {player.levelsCompleted}/12
+                            {player.completedLevels}/12
                           </p>
                         </div>
                         <div className="text-center">
